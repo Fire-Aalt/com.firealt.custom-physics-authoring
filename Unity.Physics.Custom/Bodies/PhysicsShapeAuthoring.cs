@@ -719,6 +719,12 @@ namespace Unity.Physics.Authoring
             SyncSphereProperties();
         }
 
+        // FireAlt: sets the center shared by all primitive shape types, in the space of this object's transform.
+        internal void SetPrimitiveCenter(float3 center)
+        {
+            m_PrimitiveCenter = center;
+        }
+
         public void SetConvexHull(
             ConvexHullGenerationParameters hullGenerationParameters, float minimumSkinnedVertexWeight
         )

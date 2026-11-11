@@ -992,6 +992,18 @@ namespace Unity.Physics.Editor
         static readonly Color k_ShapeHandleColor = new Color32(145, 244, 139, 210);
         static readonly Color k_ShapeHandleColorDisabled = new Color32(84, 200, 77, 140);
 
+        // FireAlt: primitive handles are drawn in a frame that excludes the primitive center, with the center passed
+        // to the handle instead. The frame then stays fixed while dragging, and the handle's new center is applied.
+        // As with built-in colliders, only the dragged side moves. Holding Alt resizes symmetrically.
+        static float4x4 GetHandleFrame(quaternion orientation) =>
+            math.mul(Handles.matrix, new float4x4(orientation, float3.zero));
+
+        static float3 ToHandleFrame(float3 center, quaternion orientation) =>
+            math.mul(math.inverse(orientation), center);
+
+        static void ApplyHandleCenter(PhysicsShapeAuthoring shape, Vector3 handleCenterWorld) =>
+            shape.SetPrimitiveCenter(shape.transform.InverseTransformPoint(handleCenterWorld));
+
         void OnSceneGUI()
         {
             var hotControl = GUIUtility.hotControl;
@@ -1009,6 +1021,7 @@ namespace Unity.Physics.Editor
 
             var handleColor = shape.enabled ? k_ShapeHandleColor : k_ShapeHandleColorDisabled;
             var handleMatrix = shape.GetShapeToWorldMatrix();
+            Vector3 handleCenterWorld;
             using (new Handles.DrawingScope(handleColor, handleMatrix))
             {
                 switch (shape.ShapeType)
@@ -1016,89 +1029,109 @@ namespace Unity.Physics.Editor
                     case ShapeType.Box:
                         var boxGeometry = shape.GetBakedBoxProperties();
                         s_Box.bevelRadius = boxGeometry.BevelRadius;
-                        s_Box.center = float3.zero;
+                        s_Box.center = ToHandleFrame(boxGeometry.Center, boxGeometry.Orientation);
                         s_Box.size = boxGeometry.Size;
                         EditorGUI.BeginChangeCheck();
                         {
-                            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(boxGeometry.Center, boxGeometry.Orientation, 1f))))
+                            using (new Handles.DrawingScope(GetHandleFrame(boxGeometry.Orientation)))
+                            {
                                 s_Box.DrawHandle();
+                                handleCenterWorld = Handles.matrix.MultiplyPoint3x4(s_Box.center);
+                            }
                         }
                         if (EditorGUI.EndChangeCheck())
                         {
                             Undo.RecordObject(shape, Styles.GenericUndoMessage);
                             shape.SetBakedBoxSize(s_Box.size, s_Box.bevelRadius);
+                            ApplyHandleCenter(shape, handleCenterWorld);
                         }
                         break;
                     case ShapeType.Capsule:
-                        s_Capsule.center = float3.zero;
                         var capsuleGeometry = shape.GetBakedCapsuleProperties();
+                        s_Capsule.center = ToHandleFrame(capsuleGeometry.Center, capsuleGeometry.Orientation);
                         s_Capsule.height = capsuleGeometry.Height;
                         s_Capsule.radius = capsuleGeometry.Radius;
                         EditorGUI.BeginChangeCheck();
                         {
-                            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(capsuleGeometry.Center, capsuleGeometry.Orientation, 1f))))
+                            using (new Handles.DrawingScope(GetHandleFrame(capsuleGeometry.Orientation)))
+                            {
                                 s_Capsule.DrawHandle();
+                                handleCenterWorld = Handles.matrix.MultiplyPoint3x4(s_Capsule.center);
+                            }
                         }
                         if (EditorGUI.EndChangeCheck())
                         {
                             Undo.RecordObject(shape, Styles.GenericUndoMessage);
                             shape.SetBakedCapsuleSize(s_Capsule.height, s_Capsule.radius);
+                            ApplyHandleCenter(shape, handleCenterWorld);
                         }
                         break;
                     case ShapeType.Sphere:
                         var sphereGeometry = shape.GetBakedSphereProperties(out EulerAngles orientation);
-                        s_Sphere.center = float3.zero;
+                        s_Sphere.center = ToHandleFrame(sphereGeometry.Center, orientation);
                         s_Sphere.radius = sphereGeometry.Radius;
                         EditorGUI.BeginChangeCheck();
                         {
-                            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sphereGeometry.Center, orientation, 1f))))
+                            using (new Handles.DrawingScope(GetHandleFrame(orientation)))
+                            {
                                 s_Sphere.DrawHandle();
+                                handleCenterWorld = Handles.matrix.MultiplyPoint3x4(s_Sphere.center);
+                            }
                         }
                         if (EditorGUI.EndChangeCheck())
                         {
                             Undo.RecordObject(shape, Styles.GenericUndoMessage);
                             shape.SetBakedSphereRadius(s_Sphere.radius);
+                            ApplyHandleCenter(shape, handleCenterWorld);
                         }
                         break;
                     case ShapeType.Cylinder:
                         var cylinderGeometry = shape.GetBakedCylinderProperties();
-                        s_Cylinder.center = float3.zero;
+                        s_Cylinder.center = ToHandleFrame(cylinderGeometry.Center, cylinderGeometry.Orientation);
                         s_Cylinder.height = cylinderGeometry.Height;
                         s_Cylinder.radius = cylinderGeometry.Radius;
                         s_Cylinder.sideCount = cylinderGeometry.SideCount;
                         s_Cylinder.bevelRadius = cylinderGeometry.BevelRadius;
                         EditorGUI.BeginChangeCheck();
                         {
-                            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(cylinderGeometry.Center, cylinderGeometry.Orientation, 1f))))
+                            using (new Handles.DrawingScope(GetHandleFrame(cylinderGeometry.Orientation)))
+                            {
                                 s_Cylinder.DrawHandle();
+                                handleCenterWorld = Handles.matrix.MultiplyPoint3x4(s_Cylinder.center);
+                            }
                         }
                         if (EditorGUI.EndChangeCheck())
                         {
                             Undo.RecordObject(shape, Styles.GenericUndoMessage);
                             shape.SetBakedCylinderSize(s_Cylinder.height, s_Cylinder.radius, s_Cylinder.bevelRadius);
+                            ApplyHandleCenter(shape, handleCenterWorld);
                         }
                         break;
                     case ShapeType.Plane:
                         shape.GetPlaneProperties(out var center, out var size2, out orientation);
-                        s_Plane.center = float3.zero;
+                        s_Plane.center = ToHandleFrame(center, orientation);
                         s_Plane.size = new float3(size2.x, 0f, size2.y);
                         EditorGUI.BeginChangeCheck();
                         {
-                            var m = math.mul(shape.transform.localToWorldMatrix, float4x4.TRS(center, orientation, 1f));
+                            var m = math.mul(shape.transform.localToWorldMatrix, new float4x4(orientation, float3.zero));
                             using (new Handles.DrawingScope(m))
+                            {
                                 s_Plane.DrawHandle();
+                                handleCenterWorld = Handles.matrix.MultiplyPoint3x4(s_Plane.center);
+                            }
                             var right = math.mul(m, new float4 { x = 1f }).xyz;
                             var forward = math.mul(m, new float4 { z = 1f }).xyz;
                             var normal = math.cross(math.normalizesafe(forward), math.normalizesafe(right))
                                 * 0.5f * math.lerp(math.length(right) * size2.x, math.length(forward) * size2.y, 0.5f);
 
                             using (new Handles.DrawingScope(float4x4.identity))
-                                Handles.DrawLine(m.c3.xyz, m.c3.xyz + normal);
+                                Handles.DrawLine(handleCenterWorld, (float3)handleCenterWorld + normal);
                         }
                         if (EditorGUI.EndChangeCheck())
                         {
                             Undo.RecordObject(shape, Styles.GenericUndoMessage);
                             shape.SetBakedPlaneSize(((float3)s_Plane.size).xz);
+                            ApplyHandleCenter(shape, handleCenterWorld);
                         }
                         break;
                     case ShapeType.ConvexHull:
