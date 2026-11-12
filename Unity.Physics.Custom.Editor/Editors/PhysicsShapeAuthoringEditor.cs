@@ -17,7 +17,7 @@ namespace Unity.Physics.Editor
 {
     [CustomEditor(typeof(PhysicsShapeAuthoring))]
     [CanEditMultipleObjects][NoAutoStaticsCleanup]
-    class PhysicsShapeAuthoringEditor : BaseEditor
+    partial class PhysicsShapeAuthoringEditor : BaseEditor // FireAlt: partial, see PhysicsShapeAuthoringEditor.FireAlt.cs
     {
         static class Styles
         {
@@ -533,6 +533,7 @@ namespace Unity.Physics.Editor
 
             EditorGUI.BeginChangeCheck();
 
+            DrawEditColliderToolbar(); // FireAlt: PhysX-style Edit Collider tool
             DisplayShapeSelector();
 
             ++EditorGUI.indentLevel;
@@ -544,23 +545,18 @@ namespace Unity.Physics.Editor
                 switch ((ShapeType)m_ShapeType.intValue)
                 {
                     case ShapeType.Box:
-                        AutomaticPrimitiveControls();
                         DisplayBoxControls();
                         break;
                     case ShapeType.Capsule:
-                        AutomaticPrimitiveControls();
                         DisplayCapsuleControls();
                         break;
                     case ShapeType.Sphere:
-                        AutomaticPrimitiveControls();
                         DisplaySphereControls();
                         break;
                     case ShapeType.Cylinder:
-                        AutomaticPrimitiveControls();
                         DisplayCylinderControls();
                         break;
                     case ShapeType.Plane:
-                        AutomaticPrimitiveControls();
                         DisplayPlaneControls();
                         break;
                     case ShapeType.ConvexHull:
@@ -576,7 +572,9 @@ namespace Unity.Physics.Editor
                         throw new UnimplementedShapeException((ShapeType)m_ShapeType.intValue);
                 }
 
-                EditorGUILayout.PropertyField(m_ForceUnique, Styles.ForceUniqueLabel);
+                if (PhysicsShapeEditTool.IsPrimitive((ShapeType)m_ShapeType.intValue)) DisplayFitButtons(); // FireAlt
+
+                DisplayForceUnique(); // FireAlt: Force Unique is not indented under the shape fields
             }
 
             --EditorGUI.indentLevel;
@@ -893,9 +891,9 @@ namespace Unity.Physics.Editor
 
         void DisplayBoxControls()
         {
-            EditorGUILayout.PropertyField(m_PrimitiveSize, Styles.SizeLabel, true);
+            IndentSafeFloat3Field.Draw(m_PrimitiveSize, Styles.SizeLabel); // FireAlt: keep X/Y/Z labels when indented
 
-            EditorGUILayout.PropertyField(m_PrimitiveCenter, Styles.CenterLabel, true);
+            IndentSafeFloat3Field.Draw(m_PrimitiveCenter, Styles.CenterLabel); // FireAlt: keep X/Y/Z labels when indented
             EditorGUILayout.PropertyField(m_PrimitiveOrientation, Styles.OrientationLabel, true);
 
             EditorGUILayout.PropertyField(m_BevelRadius);
@@ -915,7 +913,7 @@ namespace Unity.Physics.Editor
                 }
             }
 
-            EditorGUILayout.PropertyField(m_PrimitiveCenter, Styles.CenterLabel, true);
+            IndentSafeFloat3Field.Draw(m_PrimitiveCenter, Styles.CenterLabel); // FireAlt: keep X/Y/Z labels when indented
             EditorGUILayout.PropertyField(m_PrimitiveOrientation, Styles.OrientationLabel, true);
         }
 
@@ -933,7 +931,7 @@ namespace Unity.Physics.Editor
                 }
             }
 
-            EditorGUILayout.PropertyField(m_PrimitiveCenter, Styles.CenterLabel, true);
+            IndentSafeFloat3Field.Draw(m_PrimitiveCenter, Styles.CenterLabel); // FireAlt: keep X/Y/Z labels when indented
             EditorGUILayout.PropertyField(m_PrimitiveOrientation, Styles.OrientationLabel, true);
         }
 
@@ -951,7 +949,7 @@ namespace Unity.Physics.Editor
                 }
             }
 
-            EditorGUILayout.PropertyField(m_PrimitiveCenter, Styles.CenterLabel, true);
+            IndentSafeFloat3Field.Draw(m_PrimitiveCenter, Styles.CenterLabel); // FireAlt: keep X/Y/Z labels when indented
             EditorGUILayout.PropertyField(m_PrimitiveOrientation, Styles.OrientationLabel, true);
 
             EditorGUILayout.PropertyField(m_CylinderSideCount, Styles.CylinderSideCountLabel);
@@ -961,9 +959,9 @@ namespace Unity.Physics.Editor
 
         void DisplayPlaneControls()
         {
-            EditorGUILayout.PropertyField(m_PrimitiveSize, Styles.SizeLabel, true);
+            IndentSafeFloat3Field.Draw(m_PrimitiveSize, Styles.SizeLabel); // FireAlt: keep X/Y/Z labels when indented
 
-            EditorGUILayout.PropertyField(m_PrimitiveCenter, Styles.CenterLabel, true);
+            IndentSafeFloat3Field.Draw(m_PrimitiveCenter, Styles.CenterLabel); // FireAlt: keep X/Y/Z labels when indented
             EditorGUILayout.PropertyField(m_PrimitiveOrientation, Styles.OrientationLabel, true);
         }
 
@@ -1016,6 +1014,9 @@ namespace Unity.Physics.Editor
                     m_DraggingControlID = 0;
                     break;
             }
+
+            if (SkipSceneGUIEvent()) return; // FireAlt: shape handles are only editable with the Edit Collider tool
+            SetHandlesEditable(PhysicsShapeEditTool.IsActive); // FireAlt
 
             var shape = target as PhysicsShapeAuthoring;
 

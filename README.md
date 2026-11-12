@@ -14,3 +14,10 @@ Licensed under the Unity Companion License, see `LICENSE.md`.
 - Baked capsules keep their authored rotation order, which avoids precision loss near gimbal lock.
 - Added EditMode tests that bake PhysX and converted authoring and compare the results.
 - Added `PhysicsMaterialTemplateExtensions` with extensions like `ToCollisionFilter()` and `ToMaterial()`.
+- The Physics Shape inspector follows the PhysX Colliders inspector:
+  - An `Edit Collider` button toggles a scene tool that hides the transform gizmo and enables the shape handles.
+    Without it, primitive shapes only draw their wireframe.
+  - `Fit to Self` and `Fit to Children` buttons, with PhysX's tooltips, replace `Fit to Enabled Render Meshes`
+    on primitive shapes. `Fit to Children` skips children that have their own shape. The minimum skinned vertex
+    weight popup only opens when skinned geometry is involved.
+  - Size, Center and Orientation show their X/Y/Z labels and line up with the other shape fields.

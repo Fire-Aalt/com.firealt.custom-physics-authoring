@@ -18,7 +18,7 @@ namespace Unity.Physics.Editor
         protected override void DoGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             var value = property.FindPropertyRelative(nameof(EulerAngles.Value));
-            EditorGUI.PropertyField(position, value, label, true);
+            IndentSafeFloat3Field.Draw(position, value, label); // FireAlt: keep X/Y/Z labels when indented
         }
     }
 }
