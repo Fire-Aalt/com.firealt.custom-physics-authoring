@@ -11,6 +11,12 @@ Licensed under the Unity Companion License, see `LICENSE.md`.
 - Added `Tools > Unity Physics > Replace PhysX Authoring with ECS Physics Authoring`.
   It replaces Rigidbodies, colliders and joints in prefabs and scenes, matching the PhysX bakers and keeping
   prefab instance overrides. Lossy mappings are listed in the console.
+- Colliders, Rigidbodies and joints have `Convert to Physics Shape`, `Convert to Physics Body` and
+  `Convert to ECS Joint` in their component context menu. The replacement takes the component's place, with the same
+  mappings as the bulk tool, as one undo step. A Rigidbody is converted together with its joints and every Rigidbody
+  connected to it through joints, because the joints reference each other's bodies.
+- Searching the Add Component window for `Rigidbody`, `Box Collider`, `Sphere Collider`, `Capsule Collider` or
+  `Mesh Collider` also lists the Physics Body and Physics Shape, preset to the matching shape type.
 - Baked capsules keep their authored rotation order, which avoids precision loss near gimbal lock.
 - Added EditMode tests that bake PhysX and converted authoring and compare the results.
 - Added `PhysicsMaterialTemplateExtensions` with extensions like `ToCollisionFilter()` and `ToMaterial()`.
