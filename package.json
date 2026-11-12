@@ -1,7 +1,7 @@
 {
   "name": "com.firealt.custom-physics-authoring",
   "displayName": "FireAlt Custom Physics Authoring",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Unity Physics Authoring adopted from its Samples and improved.",
   "unity": "6000.7",
   "dependencies": {
