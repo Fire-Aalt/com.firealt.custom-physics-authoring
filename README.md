@@ -13,3 +13,4 @@ Licensed under the Unity Companion License, see `LICENSE.md`.
   prefab instance overrides. Lossy mappings are listed in the console.
 - Baked capsules keep their authored rotation order, which avoids precision loss near gimbal lock.
 - Added EditMode tests that bake PhysX and converted authoring and compare the results.
+- Added `PhysicsMaterialTemplateExtensions` with extensions like `ToCollisionFilter()` and `ToMaterial()`.
