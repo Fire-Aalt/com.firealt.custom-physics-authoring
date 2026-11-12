@@ -59,7 +59,8 @@ namespace Unity.Physics.Authoring
                 var radius = Capsule[0].Radius;
                 var center = Capsule[0].Center;
                 var height = Capsule[0].Height;
-                quaternion orientation = Capsule[0].OrientationEuler;
+                var orientationEuler = Capsule[0].OrientationEuler;
+                quaternion orientation = orientationEuler;
 
                 var bakeToShape = Math.GetBakeToShape(LocalToWorld, ShapeToWorld, ref center, ref orientation, BakeUniformScale, makeZAxisPrimaryBasis: true);
                 var scale = bakeToShape.DecomposeScale();
@@ -67,9 +68,13 @@ namespace Unity.Physics.Authoring
                 radius *= math.cmax(scale.xy);
                 height = math.max(0, height * scale.z);
 
+                // FireAlt: keep the authored rotation order. The implicit quaternion conversion uses XYZ, which loses
+                // precision near gimbal lock, for example for a capsule rotated 90 degrees around Y.
+                orientationEuler.SetValue(orientation);
+
                 Capsule[0] = new CapsuleGeometryAuthoring
                 {
-                    OrientationEuler = orientation,
+                    OrientationEuler = orientationEuler,
                     Center = center,
                     Height = height,
                     Radius = radius
