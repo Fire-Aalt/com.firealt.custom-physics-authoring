@@ -16,6 +16,7 @@ namespace Unity.Physics.Authoring
         public float Mass;
         public bool OverrideDefaultMassDistribution;
         public MassDistribution CustomMassDistribution;
+        public RotationAxes FreezeRotation;
     }
 
     class PhysicsBodyAuthoringBaker : BasePhysicsBaker<PhysicsBodyAuthoring>
@@ -38,7 +39,8 @@ namespace Unity.Physics.Authoring
                 IsDynamic = (authoring.MotionType == BodyMotionType.Dynamic),
                 Mass = authoring.Mass,
                 OverrideDefaultMassDistribution = authoring.OverrideDefaultMassDistribution,
-                CustomMassDistribution = authoring.CustomMassDistribution
+                CustomMassDistribution = authoring.CustomMassDistribution,
+                FreezeRotation = authoring.FreezeRotation,
             });
 
             AddSharedComponent(entity, new PhysicsWorldIndex(authoring.WorldIndex));
@@ -154,6 +156,29 @@ namespace Unity.Physics.Authoring
             {
                 physicsMass.ValueRW = CreatePhysicsMass(entityManager, entity, bodyData.ValueRO,
                     collider.ValueRO.MassProperties, true);
+            }
+
+            // Freeze rotation axes once the final mass properties are known. Dynamic bodies are always unparented,
+            // so their LocalTransform rotation is their world rotation.
+            foreach (var(physicsMass, velocity, bodyData, transform, entity) in
+                     SystemAPI.Query<RefRW<PhysicsMass>, RefRW<PhysicsVelocity>, RefRO<PhysicsBodyAuthoringData>,
+                             RefRO<LocalTransform>>()
+                         .WithEntityAccess()
+                         .WithOptions(EntityQueryOptions.IncludePrefab | EntityQueryOptions.IncludeDisabledEntities))
+            {
+                var freezeRotation = bodyData.ValueRO.FreezeRotation;
+                if (!bodyData.ValueRO.IsDynamic || freezeRotation == RotationAxes.None)
+                    continue;
+
+                FrozenRotationUtility.Apply(ref physicsMass.ValueRW, ref velocity.ValueRW.Angular, freezeRotation,
+                    transform.ValueRO.Rotation);
+
+                if (entityManager.HasComponent<PhysicsGraphicalInterpolationBuffer>(entity))
+                {
+                    var buffer = entityManager.GetComponentData<PhysicsGraphicalInterpolationBuffer>(entity);
+                    buffer.PreviousVelocity = velocity.ValueRO;
+                    entityManager.SetComponentData(entity, buffer);
+                }
             }
         }
 

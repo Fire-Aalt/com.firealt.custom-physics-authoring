@@ -279,6 +279,30 @@ namespace Unity.Physics.Editor.Tests
             Assert.That(m_Report.HasEntry(ConversionSeverity.Info, "angular expansion"), Is.True);
         }
 
+        [TestCase(RigidbodyConstraints.FreezeRotationY, RotationAxes.Y, "single frozen axis")]
+        [TestCase(RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ,
+            RotationAxes.X | RotationAxes.Z, "free axis")]
+        [TestCase(RigidbodyConstraints.FreezeRotation, RotationAxes.All, null)]
+        [TestCase(RigidbodyConstraints.FreezePositionY, RotationAxes.None, null)]
+        public void Rigidbody_Constraints_FreezeRotation(
+            RigidbodyConstraints constraints, RotationAxes expected, string warning)
+        {
+            var root = Create("Body", Vector3.zero, Vector3.one);
+            root.AddComponent<Rigidbody>().constraints = constraints;
+            root.AddComponent<BoxCollider>();
+
+            var converted = ConvertCopy(root);
+
+            Assert.That(converted.GetComponent<PhysicsBodyAuthoring>().FreezeRotation, Is.EqualTo(expected));
+            Assert.That(m_Report.HasEntry(ConversionSeverity.Info, "Freeze Rotation"),
+                Is.EqualTo(expected != RotationAxes.None));
+            Assert.That(m_Report.HasEntry(ConversionSeverity.Info, "Freeze Position"),
+                Is.EqualTo((constraints & RigidbodyConstraints.FreezePosition) != 0));
+            // An empty fragment matches any warning, so no warning may be reported then.
+            Assert.That(m_Report.HasEntry(ConversionSeverity.Warning, warning ?? string.Empty),
+                Is.EqualTo(warning != null));
+        }
+
         [Test]
         public void WorldIndex_MatchesPhysX()
         {

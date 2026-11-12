@@ -11,6 +11,18 @@ Licensed under the Unity Companion License, see `LICENSE.md`.
 - Added `Tools > Unity Physics > Replace PhysX Authoring with ECS Physics Authoring`.
   It replaces Rigidbodies, colliders and joints in prefabs and scenes, matching the PhysX bakers and keeping
   prefab instance overrides. Lossy mappings are listed in the console.
+  Rigidbody `Freeze Rotation` constraints become the Physics Body's `Freeze Rotation`, unlike the PhysX bakers, which
+  ignore them. `Freeze Position` constraints are still dropped; use a Limit DOF Joint for those.
+- The Physics Body has a `Constraints` foldout with `Freeze Rotation` X/Y/Z toggles for dynamic bodies, like the
+  Rigidbody's. The world axes are baked into `PhysicsMass` by zeroing the inverse inertia about them, so no joint
+  entity is created and the solver cannot drift. Frozen axes are converted to body space using the baked rotation:
+  - Three axes match PhysX exactly.
+  - Two axes match PhysX if the body only spawns rotated about the free axis. Other spawn rotations break the freeze.
+  - One axis is locked relative to the body, not the world. It tilts once the body rotates about a free axis.
+
+  The inspector warns about the one- and two-axis cases. Initial angular velocity about frozen axes is removed.
+  Keep `PhysicsStep` gyroscopic torque disabled, as it is by default: it divides by the inverse inertia and turns
+  frozen axes into NaN.
 - Colliders, Rigidbodies and joints have `Convert to Physics Shape`, `Convert to Physics Body` and
   `Convert to ECS Joint` in their component context menu. The replacement takes the component's place, with the same
   mappings as the bulk tool, as one undo step. A Rigidbody is converted together with its joints and every Rigidbody

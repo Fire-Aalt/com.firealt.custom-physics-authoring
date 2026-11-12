@@ -62,6 +62,21 @@ namespace Unity.Physics.Authoring
         [Tooltip("Scales the amount of gravity to apply to this body.")]
         float m_GravityFactor = 1f;
 
+        /// <summary>
+        ///     The world axes the body cannot rotate about, like the Rigidbody Freeze Rotation constraints. Only
+        ///     dynamic bodies use it. It is baked into the mass properties from the body's rotation, so no joint is
+        ///     created.
+        /// </summary>
+        public RotationAxes FreezeRotation
+        {
+            get => m_MotionType == BodyMotionType.Dynamic ? m_FreezeRotation : RotationAxes.None;
+            set => m_FreezeRotation = value & RotationAxes.All;
+        }
+        [SerializeField]
+        [Tooltip("Stops rotation about the selected world axes, like the Rigidbody Freeze Rotation constraints. " +
+            "It is baked into the mass properties from the body's rotation, so no joint is created.")]
+        RotationAxes m_FreezeRotation;
+
         public bool OverrideDefaultMassDistribution
         {
 #pragma warning disable 618
@@ -129,6 +144,7 @@ namespace Unity.Physics.Authoring
             m_Mass = math.max(k_MinimumMass, m_Mass);
             m_LinearDamping = math.max(m_LinearDamping, 0f);
             m_AngularDamping = math.max(m_AngularDamping, 0f);
+            m_FreezeRotation &= RotationAxes.All;
         }
     }
 }

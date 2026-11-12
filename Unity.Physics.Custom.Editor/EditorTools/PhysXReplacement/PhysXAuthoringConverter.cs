@@ -52,6 +52,7 @@ namespace Unity.Physics.Editor
         public bool HasSolverType;
         public SolverType SolverType;
         public uint WorldIndex;
+        public RotationAxes FreezeRotation;
     }
 
     /// <summary>
@@ -365,13 +366,37 @@ namespace Unity.Physics.Editor
                     "factor, which the PhysX bakers do not do.");
             }
 
-            if (rigidbody.constraints != RigidbodyConstraints.None)
+            ReadConstraints(rigidbody, data, report);
+            return data;
+        }
+
+        static void ReadConstraints(Rigidbody rigidbody, BodyData data, ConversionReport report)
+        {
+            var constraints = rigidbody.constraints;
+            data.FreezeRotation =
+                ((constraints & RigidbodyConstraints.FreezeRotationX) != 0 ? RotationAxes.X : RotationAxes.None) |
+                ((constraints & RigidbodyConstraints.FreezeRotationY) != 0 ? RotationAxes.Y : RotationAxes.None) |
+                ((constraints & RigidbodyConstraints.FreezeRotationZ) != 0 ? RotationAxes.Z : RotationAxes.None);
+
+            // Constraints do not affect kinematic bodies in PhysX either.
+            if (report == null || data.MotionType != BodyMotionType.Dynamic)
+                return;
+
+            if (data.FreezeRotation != RotationAxes.None)
             {
-                report?.Info(rigidbody, "Rigidbody constraints were dropped. The PhysX bakers ignore them too. " +
-                    "Use a Limit DOF Joint to lock axes.");
+                report.Info(rigidbody, "The PhysX bakers ignore the Freeze Rotation constraints. They are now " +
+                    "baked into the Physics Body's mass properties.");
+
+                var warning = PhysicsBodyAuthoringEditor.GetFreezeRotationWarning(data.FreezeRotation);
+                if (warning != null)
+                    report.Warning(rigidbody, warning);
             }
 
-            return data;
+            if ((constraints & RigidbodyConstraints.FreezePosition) != 0)
+            {
+                report.Info(rigidbody, "Freeze Position constraints were dropped. The PhysX bakers ignore them " +
+                    "too. Use a Limit DOF Joint to lock axes.");
+            }
         }
 
         internal static void WriteBody(BodyData data, PhysicsBodyAuthoring body)
@@ -385,6 +410,7 @@ namespace Unity.Physics.Editor
             body.InitialLinearVelocity = float3.zero;
             body.InitialAngularVelocity = float3.zero;
             body.WorldIndex = data.WorldIndex;
+            body.FreezeRotation = data.FreezeRotation;
             if (data.HasSolverType)
                 body.SolverType = data.SolverType;
 
