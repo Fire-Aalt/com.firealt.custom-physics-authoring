@@ -221,6 +221,7 @@ namespace Unity.Physics.Editor
             }
 
             static readonly List<Vector3> s_ReusableEdges = new List<Vector3>(1024);
+            static readonly List<JobHandle> s_ReusableJobs = new List<JobHandle>();
 
             public Vector3[] Edges = Array.Empty<Vector3>();
 
@@ -372,7 +373,11 @@ namespace Unity.Physics.Editor
             {
                 var repaintSceneViews = false;
 
-                foreach (var job in m_PreviewJobsOutput.Keys)
+                // snapshot keys because completed jobs are removed from the dictionary inside the loop
+                s_ReusableJobs.Clear();
+                s_ReusableJobs.AddRange(m_PreviewJobsOutput.Keys);
+
+                foreach (var job in s_ReusableJobs)
                 {
                     // repaint scene views to indicate progress if most recent preview job is still in the queue
                     var mostRecentlyScheduledJob = m_MostRecentlyScheduledJob.Equals(job);
